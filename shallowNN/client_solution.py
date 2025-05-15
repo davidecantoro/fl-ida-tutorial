@@ -5,6 +5,7 @@ import flwr as fl  # Libreria Flower
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as F
 
 from torchvision import datasets, transforms # per la gestione dei dataset
 
