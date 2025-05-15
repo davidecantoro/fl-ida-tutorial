@@ -17,13 +17,18 @@ initial_model = Net()
 initial_weights = [val.cpu().numpy() for _, val in initial_model.state_dict().items()]
 initial_parameters = ndarrays_to_parameters(initial_weights)
 
-# 3) Configuro FedAvg senza alcuna modifica
+# 3) Strategy FedAvg
+# - % client che parteciperanno alla federazione
+# - numero minimo di client che dovranno partecipare alla federazione
+# - numero minimo di client che dovranno essere connessi
+# - % di client che parteciperanno alla federazione
+# - numero min di client che parteciperanno all'evaluate 
 strategy = FedAvg(
     initial_parameters=initial_parameters,
-    fraction_fit=1.0,           # 50% dei client per round
-    min_fit_clients=3,          # almeno 2 client devono finire il fit
-    min_available_clients=3,    # almeno 3 client connessi
-    fraction_evaluate=0.5,      # 50% per evaluate
+    fraction_fit=1.0,
+    min_fit_clients=3,
+    min_available_clients=3,
+    fraction_evaluate=0.5,
     min_evaluate_clients=2,
 )
 

@@ -2,7 +2,7 @@ Attivare l'ambiente conda
 
 ```bash
 conda env create -f environment.yml
-conda activate fl-learning
+conda activate fl-tutorial
 ```
 
 Testare l'ambiente

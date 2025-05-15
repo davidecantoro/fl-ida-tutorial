@@ -1,10 +1,16 @@
-import flwr as fl
+
+import flwr as fl  # Libreria Flower
+
+# Torch: librerie per l'addestramento di reti neurali
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torchvision import datasets, transforms
 
-# 1) Modello PyTorch identico al server
+from torchvision import datasets, transforms # per la gestione dei dataset
+
+
+# 1) definizione del modello locale
+# - NN con input 28x28, outpu 10
 class Net(nn.Module):
     def __init__(self):
         super().__init__()
@@ -13,7 +19,9 @@ class Net(nn.Module):
     def forward(self, x):
         return self.fc(x.view(-1, 28 * 28))
 
-# 2) Caricamento dati MNIST (train + test small subset)
+# 2) caricamento dei dati
+    # - caricamento di MNIST
+    # -  DataLoader: gestisce il flusso degli esempi di un dataset verso il modello --> carica i dati
 def load_data():
     transform = transforms.Compose([transforms.ToTensor()])
     trainset = datasets.MNIST(
@@ -34,7 +42,12 @@ def load_data():
     )
     return trainloader, testloader
 
-# 3) Client Flower con logging esteso
+# 3) creazione della classe: Flower Client
+    # componenti principali: 
+    # - inizializzazione della classe 
+    # - get parametri
+    # - fase di fit (traininf locale) --> SGD, lr 0.01, CrossEntropyLoss
+    # - fase di evaluate (valutazione modello globale sui client)
 class LoggingClient(fl.client.NumPyClient):
     def __init__(self, cid: str):
         self.cid = cid
@@ -114,8 +127,12 @@ class LoggingClient(fl.client.NumPyClient):
 
         return avg_loss, total, {"loss": avg_loss, "accuracy": accuracy}
 
+
+# main
+    # - crezione client
+    # - avvio client: localhost 8080
 if __name__ == "__main__":
-    # Leggi un id client da CLI o default
+    # Leggi un id client da CLI
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--cid", type=str, default="0")

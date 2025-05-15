@@ -1,4 +1,4 @@
-name: fl-learning
+name: fl-tutorial
 channels:
   - conda-forge
 dependencies:
