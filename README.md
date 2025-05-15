@@ -109,7 +109,7 @@ Before you get started, complete the following exercises. Solutions are provided
 
 ---
 
-### Task 2 – Lightweight CNN with FedAvg**
+### Task 2 – Lightweight CNN with FedAvg
 
 * **Objective:** Replace the shallow network with a small convolutional neural network and repeat the FedAvg experiment.
 * **CNN:**
@@ -140,7 +140,7 @@ Before you get started, complete the following exercises. Solutions are provided
 
 ---
 
-### Task 3 – Custom FedAvg Logging**
+### Task 3 – Custom FedAvg Logging
 
 * **Objective:** Override the FedAvg strategy so that the server prints both loss and accuracy at the end of each evaluation round.
 
@@ -214,3 +214,19 @@ Replace the `--cid` value to assign a unique client ID (e.g., 0, 1, 2).
 3. Launch 2–3 clients in separate terminals with distinct `--cid` values.
 4. Observe global loss and accuracy evolving over rounds.
 5. Modify local training settings (e.g., number of epochs, learning rate) in `client.py` and restart to see the impact.
+
+---
+
+```python
+class LoggingClient(fl.client.NumPyClient):
+    def __init__(self, cid: str):
+        self.cid = cid
+        self.model = Net()
+        self.trainloader, self.testloader = load_data()
+      
+    def get_parameters(self, config):
+        print(f"[Client {self.cid}] get_parameters | config: {config}")
+        params = [val.cpu().numpy() for _, val in self.model.state_dict().items()]
+        print(f"[Client {self.cid}] Sending {len(params)} parameter arrays")
+        return params
+```
