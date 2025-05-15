@@ -21,7 +21,7 @@ from torchvision import datasets, transforms # per la gestione dei dataset
     # componenti principali: 
     # - inizializzazione della classe 
     # - get parametri
-    # - fase di fit (traininf locale) --> SGD, lr 0.01, CrossEntropyLoss
+    # - fase di fit (training locale) --> SGD, lr 0.01, CrossEntropyLoss
     # - - CNN: aggiungere momentum=0.9 ad ottimizzatore
     # - fase di evaluate (valutazione modello globale sui client)
 class LoggingClient(fl.client.NumPyClient):

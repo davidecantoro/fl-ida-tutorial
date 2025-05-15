@@ -36,6 +36,7 @@ You will learn how to:
    conda activate fl-learning
    ```
 
+
 ## 🔧 Repository Structure
 
 ```
@@ -45,37 +46,137 @@ fl-ida-tutorial/
 ├── client.py           # Flower client
 └── README.md           # This file
 ```
+
+---
 ## 🎯 Tasks
 
 Before you get started, complete the following exercises. Solutions are provided in the corresponding folders: `ShallowNN/`, `CNN/`, and `CustomFedAVG/`.
 
-**Task 1 – Shallow NN with FedAvg**
+### Task 1 – Shallow NN with FedAvg
 
-* **Objective:** Set up a Flower server and one or more clients using the FedAvg strategy with a shallow neural network (single fully-connected layer).
-* **Requirements:** The model should accept a 28×28 MNIST image and output 10 class scores.
+* **Objective:**
+  Set up a Flower server and a client using the FedAvg strategy with a shallow neural network (single fully-connected layer).
+
+* **Requirements:**
+  The model should take a 28×28 MNIST image as input and output 10 class scores.
+
+---
+
+#### Client Steps
+
+1. **Define the Shallow Model**
+
+   * Single `Linear(28*28 → 10)` layer
+   * `forward`: flatten the input to shape `(-1, 28*28)` then apply the linear layer
+
+2. **Load and Subset MNIST Data**
+
+   * Apply `transforms.ToTensor()`
+   * Download and load the full MNIST training and test sets
+   * Create a `trainloader` over a subset of **1 000** examples, `batch_size=32`, `shuffle=True`
+   * Create a `testloader` over a subset of **200** examples, `batch_size=32`, `shuffle=False`
+
+3. **Implement the Flower `NumPyClient`**
+
+   * **`__init__`**: initialize `cid`, model, and data loaders
+   * **`get_parameters`**: return model weights as NumPy arrays
+   * **`fit`**:
+
+     * Load global parameters into the local model
+     * Train for **1 epoch** using SGD (`lr=0.01`) and `CrossEntropyLoss`
+     * Return updated weights, number of training examples, and metrics (loss, accuracy)
+   * **`evaluate`**:
+
+     * Load global parameters
+     * Evaluate on local test data, returning loss, number of test examples, and metrics
+
+---
+
+#### Server Steps
+
+1. **Model Definition**
+
+   * Define the same `Net` architecture as on the client (a single fully-connected layer)
+
+2. **Configure the FedAvg Strategy**
+
+   * Provide `initial_parameters` from the untrained model
+   * Set `fraction_fit`, `min_fit_clients`, `min_available_clients`, `fraction_evaluate`, and `min_evaluate_clients` as needed
+
+3. **Start the Flower Server**
+
+   * Use `fl.server.start_server(...)` with your `FedAvg` strategy and a fixed number of rounds
+
+---
+
+### Task 2 – Lightweight CNN with FedAvg**
+
+* **Objective:** Replace the shallow network with a small convolutional neural network and repeat the FedAvg experiment.
+* **CNN:**
+   1. **Input**
+      * Single-channel MNIST images of size 1×28×28.
+
+   2. **Conv-Block 1**
+
+   * **Convolution:** 32 filters, 3×3 kernel, stride 1, padding 1 → preserves 28×28 spatial size.
+   * **Activation:** ReLU introduces non-linearity.
+   * **Pooling:** 2×2 max-pool → downsamples to 32 feature maps of size 14×14.
+
+   3. **Conv-Block 2**
+
+   * **Convolution:** 64 filters, 3×3 kernel, stride 1, padding 1 → preserves 14×14.
+   * **Activation:** ReLU.
+   * **Pooling:** 2×2 max-pool → downsamples to 64 feature maps of size 7×7.
+
+   4. **Flatten**
+
+   * Reshape the tensor from (64, 7, 7) → a vector of length 64 × 7 × 7 = 3 136.
+
+   5. **Fully-Connected Layers**
+
+   * **Hidden layer:** 128 units with ReLU.
+   * **Output layer:** 10 units (one per MNIST class), producing the raw class scores (logits).
+
+
+---
+
+### Task 3 – Custom FedAvg Logging**
+
+* **Objective:** Override the FedAvg strategy so that the server prints both loss and accuracy at the end of each evaluation round.
+
 * **Steps:**
 
-  1. Open the `ShallowNN/` folder and review the provided server and client scripts.
-  2. Verify that `fl.server.start_server(...)` is used on the server side and `fl.client.start_client(...)` on the client side.
-  3. Run a federated experiment and confirm that global loss decreases round by round.
+  1. Implement a `weighted_average(metrics)` function that:
 
-**Task 2 – Lightweight CNN with FedAvg**
+     * Unpacks `(num_examples, {"loss": ..., "accuracy": ...})` tuples.
+     * Calculates the total number of examples.
+     * Returns a dict with weighted averages for both loss and accuracy.
+  2. Override the `FedAvg` strategy by creating `CustomFedAvg`:
 
-* **Objective:** Replace the shallow network with a small convolutional neural network (two Conv2d+ReLU+MaxPool blocks, followed by two fully-connected layers) and repeat the FedAvg experiment.
-* **Steps:**
+  * **override `aggregate_fit`:**
 
-  1. Open the `CNN/` folder and locate the `Net` class defining the CNN.
-  2. Ensure server and client scripts import this CNN model instead of the shallow one.
-  3. Launch the experiment for multiple rounds and compare the global loss and accuracy against Task 1.
+    1. Call the parent `aggregate_fit` to perform base aggregation.
+    2. Extract aggregated **loss** and **accuracy** from the returned metrics.
+    3. Print to console:
 
-**Task 3 – Custom FedAvg Logging**
+       ```
+       [Server] Round {server_round} aggregate fit → loss={loss:.4f}, accuracy={accuracy:.4f}
+       ```
+    4. Return the original parameters and metrics.
 
-* **Objective:** Extend or override the FedAvg strategy so that the server prints both loss and accuracy at the end of each evaluation round.
-* **Steps:**
+  * **override `aggregate_evaluate`:**
 
-  1. Open the `CustomFedAVG/` folder.
-  2. In the strategy configuration, add an `evaluate_metrics_aggregation_fn` that computes the weighted average of client accuracies.
-  3. Capture the `History` object returned by `start_server()` and print `history.metrics_distributed["accuracy"]` alongside loss each round.
+    1. Call the parent `aggregate_evaluate` method.
+    2. Extract `num_examples` and `metrics` (loss and accuracy) from the result.
+    3. Print to console:
+
+       ```
+       [Server] Round {server_round} evaluate → accuracy={accuracy:.4f}, loss={loss:.4f}
+       ```
+    4. Return the original result to preserve Flower’s internal state.
+
+3. Configure the server to use `CustomFedAvg` with both `fit_metrics_aggregation_fn` and `evaluate_metrics_aggregation_fn` set to `weighted_average`. Configure the server to use `CustomFedAvg` with both `fit_metrics_aggregation_fn` and `evaluate_metrics_aggregation_fn` set to `weighted_average`.
+
 
 ---
 
