@@ -32,7 +32,7 @@ You will learn how to:
 2. **Create and activate the Conda environment**
 
    ```bash
-   conda env create -f environment.yaml
+   conda env create -f environment.yml
    conda activate fl-learning
    ```
 
